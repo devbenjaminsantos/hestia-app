@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createTransaction,
   deleteInstallmentGroup,
@@ -19,50 +19,36 @@ export function TransactionsProvider({ children }) {
   const [recurringRules, setRecurringRules] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [loadErrors, setLoadErrors] = useState(null);
+  const latestRequest = useRef(0);
+
   const loadAll = useCallback(async () => {
+    const request = ++latestRequest.current;
     if (!hasValidSession()) {
       setTransactions([]);
       setInstallmentPlans([]);
       setRecurringRules([]);
+      setLoadErrors(null);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
 
-    try {
-      const [transactionResult, installmentPlanResult, recurringRuleResult] =
-        await Promise.allSettled([
-          getTransactions(),
-          getInstallmentPlans(),
-          getRecurringRules(),
-        ]);
+    const [history, installments, recurrences] = await Promise.allSettled([
+      getTransactions(), getInstallmentPlans(), getRecurringRules(),
+    ]);
+    if (request !== latestRequest.current) return;
 
-      if (transactionResult.status === "fulfilled") {
-        setTransactions(Array.isArray(transactionResult.value) ? transactionResult.value : []);
-      } else {
-        console.error("Erro ao carregar transações:", transactionResult.reason);
-        setTransactions([]);
-      }
-
-      if (installmentPlanResult.status === "fulfilled") {
-        setInstallmentPlans(
-          Array.isArray(installmentPlanResult.value) ? installmentPlanResult.value : []
-        );
-      } else {
-        console.error("Erro ao carregar parcelamentos:", installmentPlanResult.reason);
-        setInstallmentPlans([]);
-      }
-
-      if (recurringRuleResult.status === "fulfilled") {
-        setRecurringRules(Array.isArray(recurringRuleResult.value) ? recurringRuleResult.value : []);
-      } else {
-        console.error("Erro ao carregar recorrências:", recurringRuleResult.reason);
-        setRecurringRules([]);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    const loaded = (result) => result.status === "fulfilled" && Array.isArray(result.value);
+    if (loaded(history)) setTransactions(history.value);
+    if (loaded(installments)) setInstallmentPlans(installments.value);
+    if (loaded(recurrences)) setRecurringRules(recurrences.value);
+    setLoadErrors({
+      history: !loaded(history),
+      commitments: !loaded(installments) || !loaded(recurrences),
+    });
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -77,6 +63,7 @@ export function TransactionsProvider({ children }) {
     window.addEventListener("hestia-session-change", handleSessionChange);
 
     return () => {
+      latestRequest.current++;
       window.removeEventListener("hestia-session-change", handleSessionChange);
     };
   }, [loadAll]);
@@ -156,6 +143,7 @@ export function TransactionsProvider({ children }) {
       installmentPlans,
       recurringRules,
       isLoading,
+      loadErrors,
       loadAll,
       addTransaction,
       importTransactions: importTransactionsBatch,
@@ -170,6 +158,7 @@ export function TransactionsProvider({ children }) {
       installmentPlans,
       recurringRules,
       isLoading,
+      loadErrors,
       loadAll,
       addTransaction,
       importTransactionsBatch,

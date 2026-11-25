@@ -35,7 +35,7 @@ export default function AppShell() {
       <div className="app-shell-content">
         <Topbar />
         <main className="app-main">
-          <TransactionsProvider>
+          <TransactionsProvider key={user?.id ?? user?.email}>
             <Suspense fallback={<RouteLoading />}>
               <Outlet />
             </Suspense>

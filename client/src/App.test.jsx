@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { hasValidSession } from "./lib/api/auth";
 
+vi.mock("./features/transactions/useTransactions", () => ({
+  useTransactions: () => ({ loadErrors: { history: false, commitments: false } }),
+}));
+
 vi.mock("./components/layout/AppShell", async () => {
   const { Outlet } = await import("react-router-dom");
   return { default: () => <Outlet /> };

@@ -23,6 +23,9 @@ export const translations = {
       showPassword: "Mostrar",
       hidePassword: "Ocultar",
       loading: "Carregando...",
+      historyReadError: "Não foi possível carregar as transações.",
+      commitmentsReadError: "Não foi possível carregar as parcelas e recorrências.",
+      retryRead: "Tentar novamente",
       routeLoadErrorTitle: "Não foi possível abrir esta página",
       routeLoadErrorMessage:
         "O conteúdo pode ter sido atualizado ou a conexão foi interrompida.",
@@ -1033,6 +1036,9 @@ export const translations = {
       showPassword: "Show",
       hidePassword: "Hide",
       loading: "Loading...",
+      historyReadError: "Unable to load transactions.",
+      commitmentsReadError: "Unable to load installments and recurring transactions.",
+      retryRead: "Try again",
       routeLoadErrorTitle: "Unable to open this page",
       routeLoadErrorMessage:
         "The content may have been updated or the connection was interrupted.",

@@ -1,5 +1,6 @@
 import { lazy, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import TransactionDataRoute from "./features/transactions/TransactionDataRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import AppShell from "./components/layout/AppShell";
@@ -68,18 +69,21 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Home />} />
+          <Route element={<TransactionDataRoute />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/analises" element={<Analyses />} />
+          </Route>
+          <Route element={<TransactionDataRoute needsCommitments />}>
+            <Route path="/transacoes" element={<Transactions />} />
+            <Route path="/planejamento" element={<Planning />} />
+          </Route>
 
           <Route path="/graficos" element={<Navigate to="/analises" replace />} />
 
           <Route path="/dashboard" element={<Navigate to="/analises" replace />} />
 
-          <Route path="/transacoes" element={<Transactions />} />
-
-          <Route path="/analises" element={<Analyses />} />
           <Route path="/insights" element={<Navigate to="/analises" replace />} />
           <Route path="/comparativos" element={<Navigate to="/analises" replace />} />
-          <Route path="/planejamento" element={<Planning />} />
           <Route path="/metas" element={<Navigate to="/planejamento" replace />} />
 
           <Route path="/contas" element={<FinancialAccounts />} />
