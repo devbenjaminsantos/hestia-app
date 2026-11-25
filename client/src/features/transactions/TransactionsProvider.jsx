@@ -11,6 +11,7 @@ import {
   updateTransaction,
 } from "../../lib/api/transactions";
 import { hasValidSession } from "../../lib/api/auth";
+import { currentDayISO, getPostedTransactions, summarizeTransactions } from "../../lib/transactions/transactionSummary";
 import { TransactionsContext } from "./TransactionsContext";
 
 export function TransactionsProvider({ children }) {
@@ -106,26 +107,11 @@ export function TransactionsProvider({ children }) {
     );
   }, []);
 
-  const summary = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-
-    for (const transaction of transactions) {
-      const value = Number(transaction.amountCents) || 0;
-
-      if (transaction.type === "income") {
-        income += value;
-      } else {
-        expense += value;
-      }
-    }
-
-    return {
-      income,
-      expense,
-      balance: income - expense,
-    };
-  }, [transactions]);
+  const today = currentDayISO();
+  const summary = useMemo(
+    () => summarizeTransactions(getPostedTransactions(transactions, today)),
+    [transactions, today]
+  );
 
   const value = useMemo(
     () => ({

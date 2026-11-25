@@ -1,5 +1,9 @@
 import { formatBRLFromCents } from "../../lib/format/currency";
 
+import { currentMonthISO, currentDayISO, getPostedTransactions, summarizeTransactions } from "../../lib/transactions/transactionSummary";
+
+export { currentMonthISO, currentDayISO, getPostedTransactions, summarizeTransactions };
+
 const FALLBACK_TRANSLATIONS = {
   "dashboardAnalytics.period.currentMonth": "Mês atual",
   "dashboardAnalytics.period.last3Months": "Últimos 3 meses",
@@ -90,21 +94,6 @@ export function getComparisonRangeOptions(t) {
   ];
 }
 
-export function currentMonthISO(d = new Date()) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-export function currentDayISO(date = new Date()) {
-  return `${currentMonthISO(date)}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-export function getPostedTransactions(transactions, asOf = currentDayISO()) {
-  return transactions.filter((transaction) => {
-    const day = transaction.date?.slice(0, 10);
-    return day && day <= asOf;
-  });
-}
-
 export function lastNMonthsISO(n) {
   const months = [];
   const d = new Date();
@@ -183,27 +172,6 @@ export function getMonthsForPeriod(period) {
     default:
       return [];
   }
-}
-
-export function summarizeTransactions(transactions) {
-  let income = 0;
-  let expense = 0;
-
-  for (const transaction of transactions) {
-    const value = Number(transaction.amountCents) || 0;
-
-    if (transaction.type === "income") {
-      income += value;
-    } else {
-      expense += value;
-    }
-  }
-
-  return {
-    income,
-    expense,
-    balance: income - expense,
-  };
 }
 
 export function buildMonthlySeries(transactions, months) {

@@ -10,8 +10,8 @@ vi.mock("../../lib/api/transactions");
 vi.mock("../../lib/api/auth", () => ({ hasValidSession: () => true }));
 
 function History() {
-  const { transactions } = useTransactions();
-  return <p>{transactions.length} lançamentos</p>;
+  const { transactions, summary } = useTransactions();
+  return <><p>{transactions.length} lançamentos</p><p>Saldo: {summary.balance}</p></>;
 }
 
 function renderHistory(needsCommitments = false) {
@@ -53,4 +53,14 @@ it("still displays history when only the commitments request fails", async () =>
   api.getInstallmentPlans.mockRejectedValueOnce(new Error("offline"));
   renderHistory();
   expect(await screen.findByText("1 lançamentos")).toBeVisible();
+});
+
+it("keeps scheduled items in history while excluding them from the posted balance", async () => {
+  api.getTransactions.mockResolvedValue([
+    { date: "2000-01-01", type: "income", amountCents: 100 },
+    { date: "2099-01-01", type: "expense", amountCents: 75 },
+  ]);
+  renderHistory();
+  expect(await screen.findByText("2 lançamentos")).toBeVisible();
+  expect(screen.getByText("Saldo: 100")).toBeVisible();
 });
