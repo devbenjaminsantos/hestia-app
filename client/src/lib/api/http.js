@@ -19,6 +19,7 @@ const ERROR_CODE_TRANSLATIONS = {
   INVALID_RESET_TOKEN: "auth:invalidResetTokenError",
   INVALID_VERIFICATION_TOKEN: "auth:invalidVerificationTokenError",
   LOGIN_LOCKED: "auth:loginLockedError",
+  CURRENT_PASSWORD_INCORRECT: "profile:currentPasswordIncorrect",
   PASSWORD_REUSED: "passwordPolicy:reused",
   PASSWORD_POLICY: "passwordPolicy:message",
 };

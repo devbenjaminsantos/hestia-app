@@ -124,6 +124,26 @@ public class ProfileControllerTests
         Assert.Contains(context.AuditLogs, log => log.Action == "profile.updated-with-password");
     }
 
+    [Fact]
+    public async Task UpdatePassword_IncorrectCurrentPasswordKeepsSession()
+    {
+        using var context = CreateContext();
+        var user = new User { Name = "User", Email = "profile@hestia.local" };
+        user.PasswordHash = HashPassword("SenhaSegura123!", user);
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        var controller = CreateController(context, user.Id);
+        var result = await controller.Update(new ProfileUpdateRequest
+        {
+            Name = user.Name, CurrentPassword = "incorreta", NewPassword = "NovaSenha456!"
+        });
+
+        var problem = Assert.IsType<ProblemDetails>(Assert.IsType<BadRequestObjectResult>(result.Result).Value);
+        Assert.Equal("CURRENT_PASSWORD_INCORRECT", problem.Extensions["code"]);
+        Assert.Equal(1, user.SessionVersion);
+        Assert.Equal(0, controller.Response.Headers.SetCookie.Count);
+    }
+
     [Theory]
     [InlineData("SenhaSegura123!")]
     [InlineData("SenhaAnterior123!")]

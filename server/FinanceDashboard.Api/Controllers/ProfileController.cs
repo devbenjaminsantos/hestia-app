@@ -293,10 +293,11 @@ namespace FinanceDashboard.Api.Controllers
 
                 if (!_passwordHasher.VerifyPassword(user, dto.CurrentPassword))
                 {
-                    return Unauthorized(new ProblemDetails
+                    return BadRequest(new ProblemDetails
                     {
                         Title = "Senha atual incorreta.",
-                        Status = StatusCodes.Status401Unauthorized
+                        Status = StatusCodes.Status400BadRequest,
+                        Extensions = { ["code"] = "CURRENT_PASSWORD_INCORRECT" }
                     });
                 }
 
