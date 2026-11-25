@@ -22,51 +22,41 @@ export function TransactionsProvider({ children }) {
   const [loadErrors, setLoadErrors] = useState(null);
   const latestRequest = useRef(0);
 
-  const loadAll = useCallback(async () => {
+  const readAll = useCallback(async () => {
     const request = ++latestRequest.current;
-    if (!hasValidSession()) {
-      setTransactions([]);
-      setInstallmentPlans([]);
-      setRecurringRules([]);
-      setLoadErrors(null);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-
-    const [history, installments, recurrences] = await Promise.allSettled([
-      getTransactions(), getInstallmentPlans(), getRecurringRules(),
-    ]);
+    const signedIn = hasValidSession();
+    const [history, installments, recurrences] = await Promise.allSettled(signedIn
+      ? [getTransactions(), getInstallmentPlans(), getRecurringRules()]
+      : [[], [], []]);
     if (request !== latestRequest.current) return;
 
     const loaded = (result) => result.status === "fulfilled" && Array.isArray(result.value);
     if (loaded(history)) setTransactions(history.value);
     if (loaded(installments)) setInstallmentPlans(installments.value);
     if (loaded(recurrences)) setRecurringRules(recurrences.value);
-    setLoadErrors({
+    setLoadErrors(signedIn ? {
       history: !loaded(history),
       commitments: !loaded(installments) || !loaded(recurrences),
-    });
+    } : null);
     setIsLoading(false);
   }, []);
 
-  useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+  const loadAll = useCallback(() => {
+    setIsLoading(true);
+    return readAll();
+  }, [readAll]);
 
   useEffect(() => {
-    function handleSessionChange() {
-      loadAll();
-    }
-
-    window.addEventListener("hestia-session-change", handleSessionChange);
-
+    let active = true;
+    queueMicrotask(() => {
+      if (active) readAll();
+    });
+    window.addEventListener("hestia-session-change", loadAll);
     return () => {
-      latestRequest.current++;
-      window.removeEventListener("hestia-session-change", handleSessionChange);
+      active = false;
+      window.removeEventListener("hestia-session-change", loadAll);
     };
-  }, [loadAll]);
+  }, [loadAll, readAll]);
 
   const addTransaction = useCallback(
     async (data) => {
