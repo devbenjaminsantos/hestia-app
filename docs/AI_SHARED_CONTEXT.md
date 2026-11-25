@@ -11,6 +11,18 @@ validá-los primeiro em ambientes descartáveis e depois na infraestrutura ativa
   Core na Railway e PostgreSQL no Neon. Brevo envia e-mails transacionais.
 - Dados financeiros são isolados por `UserId`; autenticação usa JWT em cookie
   `HttpOnly`, CSRF para mutações, rate limit e auditoria de eventos sensíveis.
+- A área autenticada exibe erro e permite repetir a leitura quando o histórico ou os
+  compromissos necessários à tela estão indisponíveis. Informar a senha atual incorreta
+  no perfil preserva a sessão.
+- Saldos realizados, metas e histórico da previsão consideram lançamentos até o dia
+  de referência. Parcelas futuras continuam disponíveis em Transações e Planejamento.
+- A importação compara a data civil e a conta de destino na prévia. A migration
+  `TrackTransactionImportBatches` registra uma assinatura do lote por usuário junto à
+  gravação dos lançamentos. Reenvios do mesmo lote retornam zero itens importados.
+- A migration `AnchorRecurringOccurrences` preserva lançamentos antigos e associa a
+  conta à regra quando o histórico permite identificá-la. Novas ocorrências têm
+  chave mensal única e seguem o dia de início da série.
+- O processamento de notificações financeiras exige habilitação explícita.
 - O cliente HTTP tem prazo total de 30 segundos, retry único apenas para
   leituras após rede/`502`/`503`/`504` e nenhum reenvio automático de escrita.
   Falha após uma mutação informa resultado incerto.
@@ -48,8 +60,6 @@ validá-los primeiro em ambientes descartáveis e depois na infraestrutura ativa
 - O hardening de proxies já está commitado (`793662a`), conforme Git. A faixa
   `100.0.0.0/8` permanece provisória; configuração validada e testes locais não
   encerram a verificação da cadeia Vercel/Railway em produção.
-- Esta revisão altera documentação; não executa deploy, migrations ou testes
-  de runtime. Conferir `git status` para identificar o trabalho local atual.
 
 ## Decisões vigentes
 
@@ -62,21 +72,25 @@ validá-los primeiro em ambientes descartáveis e depois na infraestrutura ativa
 - A API só confia em headers encaminhados de peers configurados. Não habilitar
   `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`, pois a aplicação rejeita esse modo.
 
-## Verificação recente
+## Verificação local em 25/11/2026
 
-- A suíte completa da API passou com 149 testes depois do hardening de proxies.
-- As verificações focadas do cliente para timeout/retry, autenticação, i18n e
-  redefinição de senha passaram; lint e build Vite também passaram.
-- `git diff --check` passou após o último conjunto de alterações locais.
-- Docker local estava indisponível nas últimas verificações; não houve teste
-  atual contra PostgreSQL real nem deploy de qualquer alteração local.
+- Passaram 154 testes da API, 160 do cliente e 13 cenários Playwright em Chromium.
+  Lint, build Vite e auditorias npm/NuGet passaram, incluindo dependências transitivas.
+- No PostgreSQL 16 descartável, as seis migrations foram aplicadas e a restauração
+  recuperou o histórico de migrations e um lançamento vinculado ao usuário de teste.
+  Leituras concorrentes de recorrências e reenvios simultâneos de importação passaram
+  também no banco restaurado. Uma base legada com contas ambíguas e lançamentos
+  duplicados confirmou a preservação do histórico durante a atualização.
+- O workflow pós-deploy consulta `/api/auth/csrf-token` pela origem do frontend.
+  No ensaio HTTP local, o check rejeitou HTML, token vazio, resposta sem corpo e
+  falha do upstream. O aceite na cadeia pública Vercel/Railway segue pendente.
 
 ## Pendências conhecidas
 
 ### Confirmadas e bloqueantes para encerrar os hardenings
 
-- Aplicar e validar `AddPasswordHistory` em PostgreSQL real e no ambiente de
-  produção, cobrindo perfil, recuperação e retry do mesmo token.
+- Validar os fluxos de histórico de senhas em PostgreSQL e em produção, cobrindo
+  perfil, recuperação e reenvio do mesmo token. A aplicação local da migration passou.
 - Validar `/health/ready` com banco atualizado, migration pendente e banco
   indisponível em uma instância PostgreSQL descartável; repetir smoke na Railway.
 - Confirmar a topologia e o IP efetivo pela Vercel e Railway. Só reduzir
@@ -87,17 +101,20 @@ validá-los primeiro em ambientes descartáveis e depois na infraestrutura ativa
 
 ### Melhorias futuras que não bloqueiam o trabalho atual
 
+- Paginação completa do histórico ficou para uma etapa separada por decisão do
+  responsável. O contrato atual entrega a coleção usada por filtros, exportação,
+  reconciliação de importações e cálculos dos painéis.
 - Domínio final, cookies/CORS/callbacks e autenticação Brevo com SPF/DKIM/DMARC.
 - Webhook Brevo assinado, deduplicado e com retenção definida antes de ativar
   notificações financeiras.
 - Locks concorrentes de conta demo/notificações contra Neon com duas instâncias.
-- Monitoramento, backup e restauração documentados e testados.
+- Exercitar a recuperação em uma instância Neon isolada e validar o monitoramento ativo.
 
 ## Próximo passo sugerido
 
-Revisar os READMEs nas duas línguas. Para retomar segurança/confiabilidade,
-usar ambiente descartável e a cadeia pública para validar os IPs observados antes
-de alterar a faixa de produção. Depois, seguir para locks concorrentes no Neon.
+No próximo deploy controlado, seguir o runbook para aplicar as migrations e
+executar o smoke pela origem pública do frontend. A validação da cadeia de proxies
+e o ensaio de recuperação em Neon continuam pendentes.
 
 ## Manutenção deste arquivo
 
