@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./browser-test.js";
 import { readFile } from "node:fs/promises";
 
 const transactions = [
@@ -46,7 +46,7 @@ async function prepareAuthenticatedTransactionsPage(page) {
     const request = route.request();
 
     if (request.resourceType() !== "fetch") {
-      await route.continue();
+      await route.fallback();
       return;
     }
 

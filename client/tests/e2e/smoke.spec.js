@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./browser-test.js";
 
 async function expectVisibleFocus(locator, expectedOutlineColor) {
   const focusStyle = await locator.evaluate((element) => {
