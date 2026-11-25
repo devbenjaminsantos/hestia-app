@@ -1,3 +1,4 @@
+using FinanceDashboard.Api.Configuration;
 using FinanceDashboard.Api.Data;
 using FinanceDashboard.Api.Models;
 using FinanceDashboard.Api.Services.Email;
@@ -11,6 +12,12 @@ namespace FinanceDashboard.Api.Tests;
 
 public class FinancialEmailAutomationServiceTests
 {
+    [Fact]
+    public void FinancialNotificationsRequireExplicitEnablement()
+    {
+        Assert.False(new NotificationOptions().Enabled);
+    }
+
     [Fact]
     public async Task ProcessAsync_MatchesGoalCategoryIgnoringLetterCase()
     {

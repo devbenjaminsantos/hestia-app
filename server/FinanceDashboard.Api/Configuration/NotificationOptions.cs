@@ -4,7 +4,7 @@ namespace FinanceDashboard.Api.Configuration
     {
         public const string SectionName = "Notifications";
 
-        public bool Enabled { get; set; } = true;
+        public bool Enabled { get; set; }
         public int ProcessingIntervalMinutes { get; set; } = 60;
     }
 }
