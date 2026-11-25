@@ -19,6 +19,7 @@ internal sealed class PostgreSqlFactAttribute : FactAttribute
 public class PostgreSqlRecurringTests
 {
     [PostgreSqlFact]
+    [Trait("Database", "PostgreSQL")]
     public async Task ConcurrentReadsGenerateOneOccurrencePerMonth()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

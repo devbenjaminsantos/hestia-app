@@ -362,6 +362,7 @@ public class TransactionsControllerTests
     }
 
     [PostgreSqlFact]
+    [Trait("Database", "PostgreSQL")]
     public async Task Import_ConcurrentReplayPreservesIntentionalRowsAndIsScopedToUserAndAccount()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
