@@ -361,6 +361,48 @@ public class TransactionsControllerTests
         Assert.Contains(context.AuditLogs, log => log.Action == "transaction.imported" && log.UserId == 15);
     }
 
+    [PostgreSqlFact]
+    public async Task Import_ConcurrentReplayPreservesIntentionalRowsAndIsScopedToUserAndAccount()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(Environment.GetEnvironmentVariable("HESTIA_TEST_POSTGRES")!).Options;
+        await using var setup = new AppDbContext(options);
+        var first = new User { Name = "First", Email = $"{Guid.NewGuid():N}@example.invalid" };
+        var second = new User { Name = "Second", Email = $"{Guid.NewGuid():N}@example.invalid" };
+        var account = new FinancialAccount { User = first, Provider = "manual", AccountName = "Test" };
+        setup.AddRange(account, second);
+        await setup.SaveChangesAsync();
+        try
+        {
+            var row = new TransactionImportItemRequest
+            {
+                Description = "Test payment", Category = "Test", AmountCents = 150, Type = "expense",
+                Date = new DateTime(2026, 1, 31), TagNames = ["fixture"]
+            };
+            var batch = new TransactionImportRequest { ImportFormat = "csv", Transactions = [row, row] };
+            async Task<int> ImportAsync(int userId)
+            {
+                await using var context = new AppDbContext(options);
+                var result = await CreateController(context, userId).Import(batch);
+                var response = Assert.IsType<OkObjectResult>(result.Result);
+                return Assert.IsType<TransactionImportResponse>(response.Value).ImportedCount;
+            }
+
+            var results = await Task.WhenAll(ImportAsync(first.Id), ImportAsync(first.Id), ImportAsync(first.Id));
+            Assert.Equal(new[] { 0, 0, 2 }, results.Order());
+            Assert.Equal(0, await ImportAsync(first.Id));
+            Assert.Equal(2, await ImportAsync(second.Id));
+            row.FinancialAccountId = account.Id;
+            Assert.Equal(2, await ImportAsync(first.Id));
+            Assert.Equal(4, await setup.Transactions.CountAsync(t => t.UserId == first.Id));
+            Assert.Equal(1, await setup.TransactionTags.CountAsync(t => t.UserId == first.Id));
+        }
+        finally
+        {
+            await setup.Users.Where(u => u.Id == first.Id || u.Id == second.Id).ExecuteDeleteAsync();
+        }
+    }
+
     [Fact]
     public async Task Import_RejectsMoreThanMaximumItemsWithoutPersistingTransactions()
     {

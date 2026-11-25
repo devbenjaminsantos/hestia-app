@@ -18,7 +18,7 @@ describe("transaction duplicate reconciliation", () => {
       [
         {
           id: 1,
-          date: "2026-04-14",
+          date: "2026-04-14T00:00:00",
           type: "expense",
           amountCents: 12000,
           description: "Mercado Central",
@@ -30,6 +30,13 @@ describe("transaction duplicate reconciliation", () => {
       isPossibleDuplicate: true,
       duplicateSource: "existing",
     });
+  });
+
+  it("matches OFX references only within the destination account", () => {
+    const history = [{ source: "import_ofx", sourceReference: "A", financialAccountId: 2, description: "Edited" }];
+    const rows = [{ sourceReference: "A", description: "Original" }];
+    expect(detectImportDuplicates(rows, history, 2)[0].isPossibleDuplicate).toBe(true);
+    expect(detectImportDuplicates(rows, history, 3)[0].isPossibleDuplicate).toBe(false);
   });
 
   it("marks repeated rows inside the same import", () => {

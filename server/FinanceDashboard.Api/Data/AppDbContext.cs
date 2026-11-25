@@ -14,6 +14,7 @@ namespace FinanceDashboard.Api.Data
         public DbSet<PasswordHistory> PasswordHistory { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<FinancialAccount> FinancialAccounts { get; set; }
+        public DbSet<TransactionImportReceipt> TransactionImportReceipts => Set<TransactionImportReceipt>();
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<RecurringRule> RecurringRules { get; set; }
         public DbSet<InstallmentPlan> InstallmentPlans { get; set; }
@@ -39,6 +40,13 @@ namespace FinanceDashboard.Api.Data
             string Column(string name) => Database.IsNpgsql()
                 ? $"\"{name}\""
                 : $"[{name}]";
+
+            modelBuilder.Entity<TransactionImportReceipt>(entity =>
+            {
+                entity.HasKey(receipt => new { receipt.UserId, receipt.BatchHash });
+                entity.Property(receipt => receipt.BatchHash).HasMaxLength(64);
+                entity.HasOne<User>().WithMany().HasForeignKey(receipt => receipt.UserId);
+            });
 
             modelBuilder.Entity<User>(entity =>
             {

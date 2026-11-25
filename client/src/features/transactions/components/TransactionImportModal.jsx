@@ -95,9 +95,10 @@ export default function TransactionImportModal({
     };
   }, [isOpen, isSubmitting, onClose]);
 
+  const accountId = financialAccountId === "all" ? null : Number(financialAccountId);
   const reconciledPreview = useMemo(
-    () => detectImportDuplicates(preview, existingTransactions),
-    [preview, existingTransactions]
+    () => detectImportDuplicates(preview, existingTransactions, accountId),
+    [preview, existingTransactions, accountId]
   );
 
   const previewFilters = useMemo(
@@ -256,7 +257,7 @@ export default function TransactionImportModal({
 
       const content = await file.text();
       const { format, transactions } = parseTransactionsImport(content, file.name);
-      const reconciled = detectImportDuplicates(transactions, existingTransactions);
+      const reconciled = detectImportDuplicates(transactions, existingTransactions, accountId);
 
       setFileName(file.name);
       setImportFormat(format);
@@ -285,7 +286,7 @@ export default function TransactionImportModal({
       await onImport({
         transactions: selectedTransactions.map((transaction) => ({
           ...transaction,
-          financialAccountId: financialAccountId === "all" ? null : Number(financialAccountId),
+          financialAccountId: accountId,
         })),
         importFormat,
       });
@@ -571,7 +572,12 @@ export default function TransactionImportModal({
                     id="transaction-import-account"
                     className="form-select hestia-select"
                     value={financialAccountId}
-                    onChange={(event) => setFinancialAccountId(event.target.value)}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      const reconciled = detectImportDuplicates(preview, existingTransactions, value === "all" ? null : Number(value));
+                      setFinancialAccountId(value);
+                      setSelectedIndexes(buildDefaultImportSelection(reconciled));
+                    }}
                     disabled={isSubmitting}
                   >
                     <option value="all">{t("transactions.unlinkedAccount")}</option>

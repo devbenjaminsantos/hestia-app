@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using FinanceDashboard.Api.Data;
 using FinanceDashboard.Api.DTOs;
 using FinanceDashboard.Api.Models;
@@ -266,12 +268,30 @@ namespace FinanceDashboard.Api.Controllers
                     importedAtUtc: importedAtUtc));
             }
 
+            var batchHash = GetImportBatchHash(source, dto.Transactions);
+            var receiptQuery = _context.TransactionImportReceipts
+                .Where(receipt => receipt.UserId == userId && receipt.BatchHash == batchHash);
+            if (await receiptQuery.AnyAsync())
+                return Ok(new TransactionImportResponse { ImportedCount = 0 });
+
+            _context.TransactionImportReceipts.Add(new TransactionImportReceipt { UserId = userId, BatchHash = batchHash });
             _context.Transactions.AddRange(transactions);
             for (var index = 0; index < transactions.Count; index += 1)
             {
                 await AttachTagsAsync(new[] { transactions[index] }, dto.Transactions[index].TagNames, userId);
             }
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException error) when (DatabaseErrorClassifier.IsUniqueConstraintViolation(error))
+            {
+                // A concurrent import may have committed the whole batch first.
+                _context.ChangeTracker.Clear();
+                if (await receiptQuery.AnyAsync())
+                    return Ok(new TransactionImportResponse { ImportedCount = 0 });
+                throw;
+            }
 
             await _auditLogService.WriteAsync(
                 action: "transaction.imported",
@@ -604,6 +624,22 @@ namespace FinanceDashboard.Api.Controllers
             };
         }
 
+        private static string GetImportBatchHash(string source, IEnumerable<TransactionImportItemRequest> items)
+        {
+            var rows = items.Select(item => JsonSerializer.Serialize(new
+            {
+                Date = DateOnly.FromDateTime(item.Date),
+                Description = item.Description.Trim(),
+                Category = item.Category.Trim(),
+                item.AmountCents,
+                Type = item.Type.Trim().ToLowerInvariant(),
+                item.FinancialAccountId,
+                Reference = item.SourceReference?.Trim() ?? string.Empty,
+                Tags = NormalizeTagNames(item.TagNames).Select(name => name.ToLowerInvariant()).Order(StringComparer.Ordinal)
+            })).Order(StringComparer.Ordinal);
+            return Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { source, rows })));
+        }
+
         private async Task AttachTagsAsync(
             IEnumerable<Transaction> transactions,
             IEnumerable<string>? rawTagNames,
@@ -625,6 +661,9 @@ namespace FinanceDashboard.Api.Controllers
                     normalizedTagKeys.Contains(tag.Name.ToLower()))
                 .ToListAsync();
 
+            existingTags.AddRange(_context.TransactionTags.Local.Where(tag =>
+                tag.UserId == userId && _context.Entry(tag).State == EntityState.Added &&
+                normalizedTagKeys.Contains(tag.Name.ToLowerInvariant())));
             var existingNames = existingTags
                 .Select(tag => tag.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);

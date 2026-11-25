@@ -17,7 +17,7 @@ namespace FinanceDashboard.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
@@ -535,6 +535,20 @@ namespace FinanceDashboard.Api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("FinanceDashboard.Api.Models.TransactionImportReceipt", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BatchHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("UserId", "BatchHash");
+
+                    b.ToTable("TransactionImportReceipts");
+                });
+
             modelBuilder.Entity("FinanceDashboard.Api.Models.TransactionTag", b =>
                 {
                     b.Property<int>("Id")
@@ -893,6 +907,15 @@ namespace FinanceDashboard.Api.Migrations
                     b.Navigation("RecurringRule");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FinanceDashboard.Api.Models.TransactionImportReceipt", b =>
+                {
+                    b.HasOne("FinanceDashboard.Api.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("FinanceDashboard.Api.Models.TransactionTag", b =>

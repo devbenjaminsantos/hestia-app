@@ -9,23 +9,32 @@ function normalizeText(value) {
 
 function buildFingerprint(transaction) {
   return [
-    transaction.date || "",
+    String(transaction.date ?? "").slice(0, 10),
     transaction.type || "",
     Number(transaction.amountCents) || 0,
     normalizeText(transaction.description),
   ].join("|");
 }
 
-export function detectImportDuplicates(previewTransactions, existingTransactions) {
+export function detectImportDuplicates(previewTransactions, existingTransactions, accountId = null) {
+  const sameAccount = (existingTransactions || []).filter(
+    (transaction) => (transaction.financialAccountId ?? null) === accountId
+  );
+  const existingReferences = new Set(
+    sameAccount.filter((row) => row.source === "import_ofx").map((row) => row.sourceReference).filter(Boolean)
+  );
+  const importReferences = new Set();
   const existingFingerprints = new Set(
-    (existingTransactions || []).map((transaction) => buildFingerprint(transaction))
+    sameAccount.map((transaction) => buildFingerprint(transaction))
   );
   const importFingerprints = new Set();
 
   return (previewTransactions || []).map((transaction) => {
     const fingerprint = buildFingerprint(transaction);
-    const isDuplicateOfExisting = existingFingerprints.has(fingerprint);
-    const isDuplicateInsideImport = importFingerprints.has(fingerprint);
+    const reference = transaction.sourceReference;
+    const isDuplicateOfExisting = existingFingerprints.has(fingerprint) || existingReferences.has(reference);
+    const isDuplicateInsideImport = importFingerprints.has(fingerprint) || importReferences.has(reference);
+    if (reference) importReferences.add(reference);
 
     if (!isDuplicateInsideImport) {
       importFingerprints.add(fingerprint);
