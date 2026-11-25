@@ -22,7 +22,11 @@ function addMonthsISO(dateString, monthsToAdd) {
     return "";
   }
 
+  const day = date.getDate();
+  date.setDate(1);
   date.setMonth(date.getMonth() + monthsToAdd);
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  date.setDate(Math.min(day, lastDay));
 
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth() + 1).padStart(2, "0");

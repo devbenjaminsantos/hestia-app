@@ -148,6 +148,10 @@ namespace FinanceDashboard.Api.Data
                         $"{Column("Type")} IN ('income', 'expense')");
                 });
 
+                entity.HasIndex(transaction => transaction.RecurringRuleId);
+                entity.HasIndex(transaction => new { transaction.RecurringRuleId, transaction.RecurrenceMonth })
+                    .IsUnique()
+                    .HasFilter($"{Column(nameof(Transaction.RecurrenceMonth))} IS NOT NULL");
                 entity.HasIndex(transaction => new { transaction.UserId, transaction.RecurrenceGroupId });
                 entity.HasIndex(transaction => new { transaction.UserId, transaction.InstallmentGroupId });
                 entity.HasIndex(transaction => new { transaction.UserId, transaction.Source, transaction.SourceReference });
@@ -257,6 +261,11 @@ namespace FinanceDashboard.Api.Data
                     .IsUnique();
 
                 entity.HasIndex(rule => new { rule.UserId, rule.IsActive, rule.NextOccurrenceDate });
+
+                entity.HasOne<FinancialAccount>()
+                    .WithMany()
+                    .HasForeignKey(rule => rule.FinancialAccountId)
+                    .OnDelete(DeleteBehavior.ClientSetNull);
 
                 entity.HasOne(rule => rule.User)
                     .WithMany(user => user.RecurringRules)

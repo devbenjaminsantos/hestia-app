@@ -159,6 +159,7 @@ namespace FinanceDashboard.Api.Controllers
                         ? dto.Date.Date.AddMonths(1)
                         : null,
                     IsActive = dto.Date.Date.AddMonths(1) <= dto.RecurrenceEndDate.Value.Date,
+                    FinancialAccountId = dto.FinancialAccountId,
                     TagsCsv = RecurringTransactionGenerationService.SerializeTags(dto.TagNames),
                     CreatedAtUtc = DateTime.UtcNow,
                     UserId = userId
@@ -594,6 +595,7 @@ namespace FinanceDashboard.Api.Controllers
                 RecurrenceEndDate = dto.IsRecurring ? dto.RecurrenceEndDate?.Date : null,
                 RecurrenceGroupId = recurrenceGroupId,
                 RecurringRule = recurringRule,
+                RecurrenceMonth = recurringRule is null ? null : new DateOnly(date.Year, date.Month, 1),
                 InstallmentIndex = installmentIndex,
                 InstallmentCount = installmentCount,
                 InstallmentGroupId = installmentGroupId,

@@ -17,21 +17,42 @@ namespace FinanceDashboard.Api.Services.Recurring
         {
             var today = DateTime.UtcNow.Date;
 
-            var rules = await _context.RecurringRules
-                .Where(rule =>
-                    rule.UserId == userId &&
-                    rule.IsActive &&
-                    rule.NextOccurrenceDate.HasValue &&
-                    rule.NextOccurrenceDate.Value.Date <= today)
-                .OrderBy(rule => rule.NextOccurrenceDate)
-                .ToListAsync();
+            var dueRules = _context.RecurringRules.Where(rule =>
+                rule.UserId == userId && rule.IsActive && rule.NextOccurrenceDate <= today);
 
-            if (rules.Count == 0)
+            if (!_context.Database.IsRelational())
             {
+                await GenerateDueRulesAsync(dueRules, today);
                 return;
             }
 
-            foreach (var rule in rules)
+            if (!await dueRules.AnyAsync()) return;
+
+            // Serialize catch-up for this user's GET requests across API instances.
+            // Read the rule cursor only after obtaining the lock.
+            await _context.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+            {
+                _context.ChangeTracker.Clear();
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                if (_context.Database.IsNpgsql())
+                {
+                    await _context.Database.ExecuteSqlInterpolatedAsync(
+                        $"SELECT \"Id\" FROM \"Users\" WHERE \"Id\" = {userId} FOR NO KEY UPDATE");
+                }
+                else
+                {
+                    await _context.Database.ExecuteSqlInterpolatedAsync(
+                        $"SELECT [Id] FROM [Users] WITH (UPDLOCK, ROWLOCK) WHERE [Id] = {userId}");
+                }
+
+                await GenerateDueRulesAsync(dueRules, today);
+                await transaction.CommitAsync();
+            });
+        }
+
+        private async Task GenerateDueRulesAsync(IQueryable<RecurringRule> dueRules, DateTime today)
+        {
+            foreach (var rule in await dueRules.OrderBy(rule => rule.Id).ToListAsync())
             {
                 await EnsureRuleGeneratedUpToDateAsync(rule, today);
             }
@@ -42,15 +63,19 @@ namespace FinanceDashboard.Api.Services.Recurring
         private async Task EnsureRuleGeneratedUpToDateAsync(RecurringRule rule, DateTime today)
         {
             var tagNames = ParseTags(rule.TagsCsv);
-            var nextDate = rule.NextOccurrenceDate?.Date ?? rule.StartDate.Date;
+            var cursor = rule.NextOccurrenceDate!.Value;
+            var startDate = rule.StartDate.Date;
+            var monthsFromStart = (cursor.Year - startDate.Year) * 12 + cursor.Month - startDate.Month;
+            var nextDate = startDate.AddMonths(monthsFromStart);
             var endDate = rule.EndDate.Date;
 
             while (nextDate <= today && nextDate <= endDate)
             {
+                var occurrenceMonth = new DateOnly(nextDate.Year, nextDate.Month, 1);
                 var exists = await _context.Transactions.AnyAsync(transaction =>
                     transaction.UserId == rule.UserId &&
                     transaction.RecurringRuleId == rule.Id &&
-                    transaction.Date == nextDate);
+                    transaction.RecurrenceMonth == occurrenceMonth);
 
                 if (!exists)
                 {
@@ -66,6 +91,8 @@ namespace FinanceDashboard.Api.Services.Recurring
                         RecurrenceEndDate = rule.EndDate.Date,
                         RecurrenceGroupId = rule.PublicId,
                         RecurringRuleId = rule.Id,
+                        RecurrenceMonth = occurrenceMonth,
+                        FinancialAccountId = rule.FinancialAccountId,
                         UserId = rule.UserId
                     };
 
@@ -74,7 +101,8 @@ namespace FinanceDashboard.Api.Services.Recurring
                 }
 
                 rule.LastGeneratedDate = nextDate;
-                nextDate = nextDate.AddMonths(1);
+                monthsFromStart++;
+                nextDate = startDate.AddMonths(monthsFromStart);
             }
 
             if (nextDate > endDate)
@@ -104,6 +132,10 @@ namespace FinanceDashboard.Api.Services.Recurring
                     normalizedTagKeys.Contains(tag.Name.ToLower()))
                 .ToListAsync();
 
+            existingTags.AddRange(_context.TransactionTags.Local.Where(tag =>
+                tag.UserId == userId &&
+                _context.Entry(tag).State == EntityState.Added &&
+                normalizedTagKeys.Contains(tag.Name.ToLowerInvariant())));
             var existingNames = existingTags
                 .Select(tag => tag.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);

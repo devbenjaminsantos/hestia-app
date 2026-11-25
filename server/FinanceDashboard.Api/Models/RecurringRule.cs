@@ -16,6 +16,7 @@ namespace FinanceDashboard.Api.Models
         public string TagsCsv { get; set; } = string.Empty;
         public DateTime CreatedAtUtc { get; set; }
 
+        public int? FinancialAccountId { get; set; }
         public int UserId { get; set; }
         public User User { get; set; } = null!;
 

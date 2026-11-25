@@ -132,6 +132,7 @@ namespace FinanceDashboard.Api.Controllers
 
             var linkedTransactionsCount = account.Transactions.Count;
 
+            await _context.RecurringRules.Where(rule => rule.FinancialAccountId == id).LoadAsync();
             _context.FinancialAccounts.Remove(account);
             await _context.SaveChangesAsync();
 

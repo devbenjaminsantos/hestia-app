@@ -123,6 +123,15 @@ describe("TransactionModal", () => {
     });
   });
 
+  it("clamps a month-end recurrence to the last day of the following month", () => {
+    render(<TransactionModal mode="create" isOpen onClose={vi.fn()} onSubmit={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Data"), { target: { value: "2024-01-31" } });
+    openMoreOptions();
+    fireEvent.click(screen.getByLabelText(/Recorr/i));
+
+    expect(screen.getByLabelText(/Repetir/i)).toHaveAttribute("min", "2024-02-29");
+  });
+
   it("sends installment data on submit", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 

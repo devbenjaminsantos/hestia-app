@@ -107,6 +107,10 @@ public class TransactionsControllerTests
         using var context = CreateContext();
         var controller = CreateController(context, userId: 7);
 
+        var account = new FinancialAccount { UserId = 7, Provider = "manual" };
+        context.FinancialAccounts.Add(account);
+        await context.SaveChangesAsync();
+
         var dto = new TransactionCreateRequest
         {
             Description = "Condominio",
@@ -114,6 +118,7 @@ public class TransactionsControllerTests
             AmountCents = 180000,
             Date = new DateTime(2026, 4, 7),
             Type = "expense",
+            FinancialAccountId = account.Id,
             IsRecurring = true,
             RecurrenceEndDate = new DateTime(2026, 7, 7),
         };
@@ -125,6 +130,8 @@ public class TransactionsControllerTests
         var entity = await context.Transactions.SingleAsync();
         var rule = await context.RecurringRules.SingleAsync();
 
+        Assert.Equal(account.Id, rule.FinancialAccountId);
+        Assert.Equal(new DateOnly(2026, 4, 1), entity.RecurrenceMonth);
         Assert.True(entity.IsRecurring);
         Assert.Equal(7, entity.UserId);
         Assert.Equal("manual", entity.Source);
@@ -159,10 +166,10 @@ public class TransactionsControllerTests
             Category = "Moradia",
             AmountCents = 180000,
             Type = "expense",
-            StartDate = DateTime.UtcNow.Date.AddMonths(-2),
-            EndDate = DateTime.UtcNow.Date.AddMonths(1),
-            LastGeneratedDate = DateTime.UtcNow.Date.AddMonths(-2),
-            NextOccurrenceDate = DateTime.UtcNow.Date.AddMonths(-1),
+            StartDate = new DateTime(2024, 1, 31),
+            EndDate = new DateTime(2024, 3, 31),
+            LastGeneratedDate = new DateTime(2024, 1, 31),
+            NextOccurrenceDate = new DateTime(2024, 2, 29),
             IsActive = true,
             TagsCsv = "casa",
             CreatedAtUtc = DateTime.UtcNow,
@@ -192,9 +199,9 @@ public class TransactionsControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsAssignableFrom<IReadOnlyList<TransactionResponse>>(ok.Value);
 
-        Assert.True(payload.Count >= 2);
-        Assert.Contains(payload, transaction => transaction.Date.Date == DateTime.UtcNow.Date.AddMonths(-1));
-        Assert.Contains(payload, transaction => transaction.Date.Date == DateTime.UtcNow.Date);
+        Assert.Equal(3, payload.Count);
+        Assert.Contains(payload, transaction => transaction.Date.Date == new DateTime(2024, 2, 29));
+        Assert.Contains(payload, transaction => transaction.Date.Date == new DateTime(2024, 3, 31));
     }
 
     [Fact]

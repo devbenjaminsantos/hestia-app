@@ -381,6 +381,9 @@ namespace FinanceDashboard.Api.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("date");
 
+                    b.Property<int?>("FinancialAccountId")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -412,6 +415,8 @@ namespace FinanceDashboard.Api.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FinancialAccountId");
 
                     b.HasIndex("UserId", "PublicId")
                         .IsUnique();
@@ -479,6 +484,9 @@ namespace FinanceDashboard.Api.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<DateOnly?>("RecurrenceMonth")
+                        .HasColumnType("date");
+
                     b.Property<int?>("RecurringRuleId")
                         .HasColumnType("integer");
 
@@ -506,6 +514,10 @@ namespace FinanceDashboard.Api.Migrations
                     b.HasIndex("InstallmentPlanId");
 
                     b.HasIndex("RecurringRuleId");
+
+                    b.HasIndex("RecurringRuleId", "RecurrenceMonth")
+                        .IsUnique()
+                        .HasFilter("\"RecurrenceMonth\" IS NOT NULL");
 
                     b.HasIndex("UserId", "InstallmentGroupId");
 
@@ -838,6 +850,10 @@ namespace FinanceDashboard.Api.Migrations
 
             modelBuilder.Entity("FinanceDashboard.Api.Models.RecurringRule", b =>
                 {
+                    b.HasOne("FinanceDashboard.Api.Models.FinancialAccount", null)
+                        .WithMany()
+                        .HasForeignKey("FinancialAccountId");
+
                     b.HasOne("FinanceDashboard.Api.Models.User", "User")
                         .WithMany("RecurringRules")
                         .HasForeignKey("UserId")
