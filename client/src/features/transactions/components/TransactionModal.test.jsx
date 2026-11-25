@@ -94,6 +94,7 @@ describe("TransactionModal", () => {
       target: { value: "450,00" },
     });
     openMoreOptions();
+    fireEvent.change(screen.getByLabelText("Data"), { target: { value: "2026-11-05" } });
     fireEvent.change(screen.getByLabelText("Tags"), {
       target: { value: "casa, fixa, casa" },
     });

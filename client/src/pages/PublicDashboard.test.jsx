@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicDashboard from "./PublicDashboard";
 
 vi.mock("../lib/api/publicDashboard", () => ({
@@ -18,6 +18,8 @@ describe("Public dashboard page", () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => vi.useRealTimers());
+
   function renderPage() {
     return render(
       <MemoryRouter initialEntries={["/compartilhado/token-publico"]}>
@@ -29,6 +31,8 @@ describe("Public dashboard page", () => {
   }
 
   it("loads the shared charts in read-only mode", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 6, 15));
     getPublicDashboard.mockResolvedValue({
       displayName: "Keller",
       lastTransactionDate: "2026-04-01",
