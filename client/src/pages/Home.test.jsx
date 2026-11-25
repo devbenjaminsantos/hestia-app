@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "./Home";
 
 vi.mock("../features/transactions/useTransactions", () => ({
@@ -39,7 +39,11 @@ describe("Home page", () => {
     );
   }
 
+  afterEach(() => vi.useRealTimers());
+
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 3, 15, 12));
     vi.clearAllMocks();
     localStorage.clear();
 
@@ -63,6 +67,18 @@ describe("Home page", () => {
           date: "2026-04-10",
           type: "expense",
           isRecurring: false,
+        },
+        {
+          id: 3,
+          amountCents: 37000,
+          date: "2026-04-16T00:00:00",
+          type: "expense",
+        },
+        {
+          id: 4,
+          amountCents: 37000,
+          date: "2026-09-16",
+          type: "expense",
         },
       ],
     });

@@ -95,6 +95,9 @@ public class FinancialEmailAutomationServiceTests
 
         var service = CreateService(context, emailSender);
 
+        await service.ProcessAsync(new DateTime(2026, 4, 9));
+        Assert.Empty(emailSender.GoalAlerts);
+
         await service.ProcessAsync(new DateTime(2026, 4, 15));
         await service.ProcessAsync(new DateTime(2026, 4, 15));
 

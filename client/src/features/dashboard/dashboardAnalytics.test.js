@@ -42,7 +42,10 @@ describe("dashboardAnalytics forecast", () => {
       },
     ];
 
-    const snapshot = getForecastSnapshot(transactions, {
+    const futureInstallment = { type: "expense", amountCents: 900000, date: "2026-03-21T00:00:00" };
+    const laterInstallment = { ...futureInstallment, date: "2026-04-21" };
+    const snapshot = getForecastSnapshot([...transactions, futureInstallment, laterInstallment], {
+      asOf: "2026-03-20",
       historyMonths: 3,
       horizon: 3,
     });
@@ -50,6 +53,7 @@ describe("dashboardAnalytics forecast", () => {
     expect(snapshot.hasEnoughData).toBe(true);
     expect(snapshot.forecast).toHaveLength(3);
     expect(snapshot.forecast[0].month).toBe("2026-04");
+    expect(snapshot.history.at(-1)).toMatchObject({ month: "2026-03", expense: 170000 });
     expect(snapshot.forecast[0].income).toBeGreaterThan(0);
     expect(snapshot.forecast[0].expense).toBeGreaterThan(0);
     expect(snapshot.averageBalance).toBeGreaterThan(0);

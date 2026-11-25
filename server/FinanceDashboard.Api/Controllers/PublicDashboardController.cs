@@ -59,14 +59,14 @@ namespace FinanceDashboard.Api.Controllers
 
             var currentMonthStart = new DateTime(now.Year, now.Month, 1);
             var periodStart = currentMonthStart.AddMonths(-(PublicDashboardPeriodMonths - 1));
-            var nextMonthStart = currentMonthStart.AddMonths(1);
+            var today = now.Date;
 
             var transactions = await _context.Transactions
                 .AsNoTracking()
                 .Where(transaction =>
                     transaction.UserId == user.Id &&
                     transaction.Date >= periodStart &&
-                    transaction.Date < nextMonthStart)
+                    transaction.Date <= today)
                 .OrderByDescending(transaction => transaction.Date)
                 .Take(PublicDashboardTransactionLimit)
                 .Select(transaction => new

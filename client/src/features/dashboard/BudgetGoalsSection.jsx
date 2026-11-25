@@ -1,3 +1,4 @@
+import { currentDayISO, getPostedTransactions } from "./dashboardAnalytics";
 import { useEffect, useMemo, useState } from "react";
 import {
   createBudgetGoal,
@@ -148,6 +149,7 @@ function GoalCard({ goal, spentCents, onEdit, onDelete, isDeleting, t, formatCur
 }
 
 export default function BudgetGoalsSection({ transactions }) {
+  const today = currentDayISO();
   const { locale, t, formatCurrencyFromCents } = useI18n();
   const [month, setMonth] = useState(currentMonthISO);
   const [goals, setGoals] = useState([]);
@@ -175,11 +177,11 @@ export default function BudgetGoalsSection({ transactions }) {
 
   const monthlyExpenses = useMemo(
     () =>
-      transactions.filter(
+      getPostedTransactions(transactions, today).filter(
         (transaction) =>
           transaction.type === "expense" && (transaction.date || "").slice(0, 7) === month
       ),
-    [transactions, month]
+    [transactions, month, today]
   );
 
   const spentByCategory = useMemo(() => {

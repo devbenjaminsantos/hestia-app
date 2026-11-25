@@ -13,11 +13,12 @@ import {
   currentMonthISO,
   getAutomaticInsights,
   getCategoryLeaders,
-  getLatestTransactionMonthISO,
+  currentDayISO,
+  getPostedTransactions,
   getMonthsForPeriod,
   getPrescriptiveInsights,
   getRelativeMonthsISO,
-  getTrailingMonthsFromAnchor,
+  lastNMonthsISO,
   getPeriodOptions,
   summarizeTransactions,
 } from "../features/dashboard/dashboardAnalytics";
@@ -588,7 +589,9 @@ function HomeSpendingCategories({ categories, isLoading }) {
 
 export default function Home() {
   const { t } = useI18n();
-  const { isLoading, transactions } = useTransactions();
+  const { isLoading, transactions: allTransactions } = useTransactions();
+  const today = currentDayISO();
+  const transactions = useMemo(() => getPostedTransactions(allTransactions, today), [allTransactions, today]);
   const accounts = useFinancialAccountOptions();
   const [user, setUser] = useState(() => getStoredUser());
   const [period, setPeriod] = useState("current-month");
@@ -734,12 +737,10 @@ export default function Home() {
     [scopedTransactions]
   );
 
-  const trendSeries = useMemo(() => {
-    const latestMonth = getLatestTransactionMonthISO(scopedTransactions) || currentMonthISO();
-    const months = getTrailingMonthsFromAnchor(latestMonth, 6);
-
-    return buildMonthlySeries(scopedTransactions, months);
-  }, [scopedTransactions]);
+  const trendSeries = useMemo(
+    () => buildMonthlySeries(scopedTransactions, lastNMonthsISO(6)),
+    [scopedTransactions]
+  );
 
   const recurringTransactionsCount = useMemo(
     () => scopedTransactions.filter((transaction) => transaction.isRecurring).length,

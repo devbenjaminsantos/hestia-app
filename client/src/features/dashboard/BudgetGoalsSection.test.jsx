@@ -20,7 +20,7 @@ const transactions = [
     description: "Mercado",
     category: "Alimentacao",
     amountCents: 90000,
-    date: `${currentMonth}-10`,
+    date: `${currentMonth}-01`,
     type: "expense",
   },
   {
@@ -28,7 +28,7 @@ const transactions = [
     description: "Aluguel",
     category: "Moradia",
     amountCents: 180000,
-    date: `${currentMonth}-05`,
+    date: `${currentMonth}-01`,
     type: "expense",
   },
   {
@@ -36,7 +36,7 @@ const transactions = [
     description: "Salario",
     category: "Salario",
     amountCents: 500000,
-    date: `${currentMonth}-05`,
+    date: `${currentMonth}-01`,
     type: "income",
   },
 ];

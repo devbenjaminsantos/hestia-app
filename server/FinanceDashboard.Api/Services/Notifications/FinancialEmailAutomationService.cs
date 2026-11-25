@@ -48,7 +48,7 @@ namespace FinanceDashboard.Api.Services.Notifications
         {
             var month = utcNow.ToString("yyyy-MM");
             var monthStart = new DateTime(utcNow.Year, utcNow.Month, 1);
-            var nextMonthStart = monthStart.AddMonths(1);
+            var today = utcNow.Date;
 
             var users = await _context.Users
                 .Where(user =>
@@ -75,7 +75,7 @@ namespace FinanceDashboard.Api.Services.Notifications
                         transaction.UserId == user.Id &&
                         transaction.Type == "expense" &&
                         transaction.Date >= monthStart &&
-                        transaction.Date < nextMonthStart)
+                        transaction.Date <= today)
                     .AsNoTracking()
                     .ToListAsync(cancellationToken);
 

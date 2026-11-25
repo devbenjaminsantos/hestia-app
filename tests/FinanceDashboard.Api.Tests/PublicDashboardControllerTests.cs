@@ -19,6 +19,8 @@ public class PublicDashboardControllerTests
         var token = tokenService.GenerateToken();
         Assert.True(tokenService.TryHashToken(token, out var tokenHash));
 
+        var transactionDate = DateTime.UtcNow.Date.AddMonths(-1);
+        var transactionMonth = new DateTime(transactionDate.Year, transactionDate.Month, 1);
         context.Users.Add(CreateUser(tokenHash));
         context.Transactions.Add(new Transaction
         {
@@ -27,7 +29,7 @@ public class PublicDashboardControllerTests
             Description = "Mercado",
             Category = "Alimentação",
             AmountCents = 12990,
-            Date = new DateTime(2026, 8, 23),
+            Date = transactionDate,
             Type = "expense"
         });
         await context.SaveChangesAsync();
@@ -40,8 +42,8 @@ public class PublicDashboardControllerTests
         Assert.Equal("Keller", payload.DisplayName);
         Assert.Single(payload.Transactions);
         Assert.Equal(12990, payload.Transactions[0].AmountCents);
-        Assert.Equal(new DateTime(2026, 8, 1), payload.Transactions[0].Date);
-        Assert.Equal(new DateTime(2026, 8, 1), payload.LastTransactionDate);
+        Assert.Equal(transactionMonth, payload.Transactions[0].Date);
+        Assert.Equal(transactionMonth, payload.LastTransactionDate);
     }
 
     [Fact]
@@ -85,7 +87,7 @@ public class PublicDashboardControllerTests
                 Description = "Future private transaction",
                 Category = "Must not be shared",
                 AmountCents = 999,
-                Date = currentMonthStart.AddMonths(1),
+                Date = DateTime.UtcNow.Date.AddDays(1),
                 Type = "expense"
             });
         await context.SaveChangesAsync();

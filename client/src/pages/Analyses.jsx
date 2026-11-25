@@ -11,7 +11,9 @@ import {
   getComparisonRangeOptions,
   getAutomaticInsights,
   getCategoryLeaders,
+  currentDayISO,
   getForecastSnapshot,
+  getPostedTransactions,
   getMonthsForPeriod,
   lastNMonthsISO,
   getPrescriptiveInsights,
@@ -75,9 +77,10 @@ export default function Analyses() {
   const periodOptions = useMemo(() => getPeriodOptions(t), [t]);
   const comparisonRangeOptions = useMemo(() => getComparisonRangeOptions(t), [t]);
 
+  const today = currentDayISO();
   const scopedTransactions = useMemo(
-    () => filterTransactionsByFinancialAccount(transactions, accountFilter),
-    [transactions, accountFilter]
+    () => getPostedTransactions(filterTransactionsByFinancialAccount(transactions, accountFilter), today),
+    [transactions, accountFilter, today]
   );
 
   const filteredTransactions = useMemo(() => {
