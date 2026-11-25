@@ -50,7 +50,7 @@ não deve ser usada pela API durante a operação normal.
 3. Publicar o commit somente depois da revisão humana.
 4. Confirmar o deploy correspondente na Vercel e na Railway.
 5. Executar o workflow manual `Post-deploy smoke`, que verifica liveness,
-   readiness e frontend; registrar o SHA e os IDs dos deploys aprovados.
+   readiness, frontend e a resposta CSRF pelo rewrite público de `/api`; registrar o SHA e os IDs dos deploys aprovados.
 6. Verificar `GET /health` (processo) e `GET /health/ready` (banco e migrations)
    na API pública e os logs de startup, sem copiar credenciais.
 7. Executar um smoke do frontend: sessão, CSRF e uma rota autenticada.

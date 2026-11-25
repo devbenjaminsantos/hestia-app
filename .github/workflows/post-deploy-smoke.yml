@@ -20,6 +20,9 @@ jobs:
     name: Production smoke
     runs-on: ubuntu-latest
     environment: production
+    defaults:
+      run:
+        shell: bash
     env:
       API_BASE_URL: ${{ inputs.api_base_url }}
       FRONTEND_URL: ${{ inputs.frontend_url }}
@@ -27,15 +30,20 @@ jobs:
       - name: Check public liveness and database readiness
         run: |
           api_base_url="${API_BASE_URL%/}"
-          curl --fail --silent --show-error --max-time 10 "$api_base_url/health/live" | jq -e '.status == "ok"'
-          curl --fail --silent --show-error --max-time 10 "$api_base_url/health/ready" | jq -e '.status == "ready"'
+          curl --fail --silent --show-error --max-time 10 "$api_base_url/health/live" | jq -se 'length == 1 and .[0].status == "ok"'
+          curl --fail --silent --show-error --max-time 10 "$api_base_url/health/ready" | jq -se 'length == 1 and .[0].status == "ready"'
       - name: Check the frontend response
-        run: curl --fail --silent --show-error --head --max-time 10 "$FRONTEND_URL"
-      - name: Record the verified revision
+        run: curl --fail --silent --show-error --head --output /dev/null --max-time 10 "$FRONTEND_URL"
+      - name: Check the API through the frontend rewrite
+        run: |
+          curl --fail --silent --show-error --max-time 30 "${FRONTEND_URL%/}/api/auth/csrf-token" |
+            jq -se 'length == 1 and (.[0].token | type == "string" and length > 0)' >/dev/null
+      - name: Record the smoke result
         run: |
           {
             echo "## Post-deploy smoke"
-            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Workflow revision: \`${GITHUB_SHA}\`"
             echo "- API readiness: passed"
             echo "- Frontend response: passed"
+            echo "- Same-origin API rewrite: passed"
           } >> "$GITHUB_STEP_SUMMARY"
