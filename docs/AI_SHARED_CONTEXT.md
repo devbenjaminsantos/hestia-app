@@ -87,6 +87,10 @@ validá-los primeiro em ambientes descartáveis e depois na infraestrutura ativa
 
 ## Pendências conhecidas
 
+O CI do frontend usa Ubuntu 24.04 para instalar o Chromium compatível com o
+Playwright do lockfile. O job de restauração executa seu próprio `dotnet restore`
+antes de migrar o PostgreSQL descartável. Cada job recebe um checkout limpo.
+
 ### Confirmadas e bloqueantes para encerrar os hardenings
 
 - Validar os fluxos de histórico de senhas em PostgreSQL e em produção, cobrindo
